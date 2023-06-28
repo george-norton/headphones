@@ -8,6 +8,9 @@ project(ploopy_headphones_project C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
+list(APPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR})
+set(PICO_BOARD ploopy_headphones)
+
 pico_sdk_init()
 
 add_executable(ploopy_headphones
