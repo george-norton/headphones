@@ -22,7 +22,7 @@
 #ifndef _PLOOPY_HEADPHONES_H
 #define _PLOOPY_HEADPHONES_H
 
-#define PICO_FLASH_SPI_CLKDIV 4
+#define PICO_XOSC_STARTUP_DELAY_MULTIPLIER 64
 
 #include "boards/pico.h"
 
