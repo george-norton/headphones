@@ -26,6 +26,7 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "hardware/clocks.h"
 #include "hardware/vreg.h"
 #include "hardware/pwm.h"
 #include "hardware/i2c.h"
@@ -732,7 +733,13 @@ static void audio_cmd_packet(struct usb_endpoint *ep) {
                     break;
                 }
                 case 2: { // volume
-                    audio_set_volume(audio_control_cmd_t.cn, *(int16_t *) buffer->data);
+                    if (audio_control_cmd_t.cn == 0xFF) {
+                        audio_set_volume(1, ((int16_t *) buffer->data)[0]);
+                        audio_set_volume(2, ((int16_t *) buffer->data)[1]);
+                    }
+                    else {
+                        audio_set_volume(audio_control_cmd_t.cn, *(int16_t *) buffer->data);
+                    }
                     break;
                 }
             }
