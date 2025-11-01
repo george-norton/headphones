@@ -179,6 +179,12 @@ static bool do_set_current(struct usb_setup_packet *);
 static bool ac_setup_request_handler(__unused struct usb_interface *, struct usb_setup_packet *);
 bool _as_setup_request_handler(__unused struct usb_endpoint *, struct usb_setup_packet *);
 void usb_sound_card_init(void);
+
+typedef enum {
+    DAC_POWER_NORMAL = 0,
+    DAC_POWER_SAVE = 1
+} dac_power_mode_t;
+extern void set_dac_power(dac_power_mode_t mode);
 extern void power_down_dac();
 extern void power_up_dac();
 #endif

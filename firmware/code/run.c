@@ -68,6 +68,22 @@ enum vendor_cmds {
     MICROSOFT_COMPATIBLE_ID_FEATURE_DESRIPTOR
 };
 
+typedef struct _dac_power_debounce {
+    dac_power_mode_t state;
+    dac_power_mode_t target;
+    uint8_t counter;
+    const uint8_t timeout;
+} dac_power_debounce;
+bool power_dac_timer_callback(repeating_timer_t *timer);
+
+static repeating_timer_t power_dac_timer;
+static dac_power_debounce dac_power = {
+    .state = DAC_POWER_NORMAL,
+    .target = DAC_POWER_NORMAL,
+    .counter = 0,
+    .timeout = 30 // in seconds
+};
+
 int main(void) {
     setup();
 
@@ -293,6 +309,9 @@ void setup() {
     i2s_write_obj.sampling_rate = SAMPLING_FREQ;
 
     i2s_write_init(&i2s_write_obj);
+
+    // 1s timer to debounce DAC power mode
+    add_repeating_timer_ms(-1000, power_dac_timer_callback, NULL, &power_dac_timer);
 }
 
 /** **************************************************************************
@@ -768,8 +787,10 @@ static const struct usb_transfer_type _audio_cmd_transfer_type = {
 static bool as_set_alternate(struct usb_interface *interface, uint alt) {
     assert(interface == &as_op_interface);
     switch (alt) {
-        case 0: power_down_dac(); return true;
-        case 1: power_up_dac(); return true;
+        // Zero interface
+        case 0: set_dac_power(DAC_POWER_SAVE); return true;
+        // Op interface
+        case 1: set_dac_power(DAC_POWER_NORMAL); return true;
         default: return false;
     }
 }
@@ -964,6 +985,38 @@ void usb_sound_card_init() {
     _audio_reconfigure();
 
     usb_device_start();
+}
+
+// Request DAC power state to change.
+// Shutdown timeout helps to debounce frequent off-on cycles
+void set_dac_power(dac_power_mode_t mode) {
+    if(dac_power.target == mode)
+        return;
+    dac_power.target = mode;
+    if(dac_power.state == dac_power.target)
+        return;
+    if(dac_power.state == DAC_POWER_SAVE) {
+        // Enable immediately
+        dac_power.counter = 1;
+        power_dac_timer_callback(&power_dac_timer);
+    } else {
+        // Power down by timeout
+        dac_power.counter = dac_power.timeout;
+    }
+}
+
+bool power_dac_timer_callback(repeating_timer_t *timer) {
+    if(dac_power.counter > 0) {
+	    if(--dac_power.counter == 0) {
+	        if(dac_power.target == DAC_POWER_NORMAL) {
+	            power_up_dac();
+	        } else {
+	            power_down_dac();
+	        }
+	        dac_power.state = dac_power.target;
+	    }
+	}
+    return true;
 }
 
 // Some operations will cause popping on the audio output, temporarily
